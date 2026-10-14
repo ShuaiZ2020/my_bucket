@@ -1,0 +1,34 @@
+{
+    "version": "0.19.2",
+    "description": "Multiplayer environment for coding with agents from Zed Industries",
+    "homepage": "https://delta.dev/",
+    "license": {
+        "identifier": "Proprietary",
+        "url": "https://delta.dev/early-access"
+    },
+    "architecture": {
+        "64bit": {
+            "url": "https://releases.delta.dev/releases/stable/0.19.2/delta-windows-x86_64-setup.exe",
+            "hash": "6b28407735b4d5f5b6316d2f2b38b4a11c48f22609c5ced2e1b38db483b1f64d"
+        }
+    },
+    "depends": [
+        "dark",
+        "lessmsi"
+    ],
+    "installer": {
+        "script": [
+            "Expand-DarkArchive -Path \"$dir\\$fname\" -DestinationPath \"$dir\\_setup\" -Removal",
+            "if (!(Invoke-ExternalCommand (Get-HelperPath -Helper Lessmsi) @('x', \"$dir\\_setup\\AttachedContainer\\Delta.msi\", \"$dir\\_msi\\\"))) { throw 'Failed to extract Delta MSI.' }",
+            "Move-Item -Path \"$dir\\_msi\\SourceDir\\PFiles64\\Delta\\*\" -Destination $dir",
+            "Remove-Item -LiteralPath \"$dir\\_setup\", \"$dir\\_msi\" -Recurse -Force"
+        ]
+    },
+    "bin": "bin\\delta.exe",
+    "shortcuts": [
+        [
+            "delta.exe",
+            "Delta"
+        ]
+    ]
+}
