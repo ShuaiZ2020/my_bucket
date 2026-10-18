@@ -1,0 +1,30 @@
+{
+    "version": "1.0.2",
+    "description": "Markdown editing add-in for Microsoft OneNote desktop.",
+    "homepage": "https://onemark.neux.studio/",
+    "license": "Proprietary",
+    "architecture": {
+        "64bit": {
+            "url": "https://onemarkcdn.ppj.io/onemark/OneMarkSetupX64.1_0_2.msi",
+            "hash": "f8d61d19aa20ab671fd2a4ad4d57abc7d17c451a36f652e72603c70ff73d18a3"
+        }
+    },
+    "pre_install": [
+        "if (!$global) { throw 'OneMark uses a machine-wide MSI installation. Run scoop install -g ./onemark.json from an elevated PowerShell.' }",
+        "if (Get-Process ONENOTE -ErrorAction SilentlyContinue) { throw 'Close OneNote before installing OneMark.' }"
+    ],
+    "installer": {
+        "script": [
+            "$arguments = @('/i', \"`\"$dir\\OneMarkSetupX64.1_0_2.msi`\"\", '/qn', '/norestart', 'ALLUSERS=1', \"TARGETDIR=`\"$dir`\"\")",
+            "if (!(Invoke-ExternalCommand msiexec.exe -ArgumentList $arguments -ContinueExitCodes @{3010 = 'Restart Windows to complete installation.'})) { throw 'OneMark MSI installation failed.' }"
+        ]
+    },
+    "pre_uninstall": "if (Get-Process ONENOTE -ErrorAction SilentlyContinue) { throw 'Close OneNote before uninstalling OneMark.' }",
+    "uninstaller": {
+        "script": [
+            "$arguments = @('/x', '{DCA39820-D6DE-41F1-A24A-D98A8D114466}', '/qn', '/norestart')",
+            "if (!(Invoke-ExternalCommand msiexec.exe -ArgumentList $arguments -ContinueExitCodes @{1605 = 'OneMark is already uninstalled.'; 3010 = 'Restart Windows to complete uninstallation.'})) { throw 'OneMark MSI uninstallation failed.' }"
+        ]
+    },
+    "notes": "Requires 64-bit Microsoft OneNote desktop and .NET Framework 4.5 or later. Install globally from an elevated PowerShell. Close OneNote before installation or removal. This package runs Windows Installer and registers the add-in system-wide."
+}
