@@ -5,17 +5,35 @@
     "license": "Proprietary",
     "architecture": {
         "64bit": {
-            "url": "https://onemarkcdn.ppj.io/onemark/OneMarkSetupX64.1_0_2.msi",
+            "url": "https://onemarkcdn.ppj.io/onemark/OneMarkSetupX64.1_0_2.msi#/OneMarkSetupX64.1_0_2.msi.bin",
             "hash": "f8d61d19aa20ab671fd2a4ad4d57abc7d17c451a36f652e72603c70ff73d18a3"
         }
     },
     "pre_install": [
-        "if (!$global) { throw 'OneMark uses a machine-wide MSI installation. Run scoop install -g ./onemark.json from an elevated PowerShell.' }",
-        "if (Get-Process ONENOTE -ErrorAction SilentlyContinue) { throw 'Close OneNote before installing OneMark.' }"
+        "if (Get-Process ONENOTE -ErrorAction SilentlyContinue) { throw 'Close OneNote before installing OneMark.' }",
+        "Rename-Item -LiteralPath \"$dir\\OneMarkSetupX64.1_0_2.msi.bin\" -NewName 'OneMarkSetupX64.1_0_2.msi'"
     ],
     "installer": {
         "script": [
-            "$arguments = @('/i', \"`\"$dir\\OneMarkSetupX64.1_0_2.msi`\"\", '/qn', '/norestart', 'ALLUSERS=1', \"TARGETDIR=`\"$dir`\"\")",
+            "$msi = Join-Path $dir 'OneMarkSetupX64.1_0_2.msi'",
+            "$arguments = @('/i', \"`\"$msi`\"\", '/qn', '/norestart', \"TARGETDIR=`\"$dir`\"\", '/l*v', \"`\"$dir\\install.log`\"\")",
+            "if ($global) { $arguments += 'ALLUSERS=1' } else {",
+            "    $transform = Join-Path $dir 'per-user.mst'",
+            "    $workingMsi = Join-Path $dir 'per-user.msi'",
+            "    Copy-Item -LiteralPath $msi -Destination $workingMsi -Force",
+            "    $windowsInstaller = New-Object -ComObject WindowsInstaller.Installer",
+            "    $original = $windowsInstaller.OpenDatabase($msi, 0)",
+            "    $modified = $windowsInstaller.OpenDatabase($workingMsi, 1)",
+            "    $view = $modified.OpenView('UPDATE `Registry` SET `Root` = 1 WHERE `Root` = 2')",
+            "    $view.Execute()",
+            "    $view.Close()",
+            "    $modified.Commit()",
+            "    if (!$modified.GenerateTransform($original, $transform)) { throw 'Could not generate the OneMark per-user transform.' }",
+            "    $modified.CreateTransformSummaryInfo($original, $transform, 0, 0)",
+            "    foreach ($comObject in @($view, $modified, $original, $windowsInstaller)) { [void][System.Runtime.InteropServices.Marshal]::FinalReleaseComObject($comObject) }",
+            "    Remove-Item -LiteralPath $workingMsi -Force",
+            "    $arguments += @('ALLUSERS=\"\"', 'FolderForm_AllUsers=ME', \"TRANSFORMS=`\"$transform`\"\")",
+            "}",
             "if (!(Invoke-ExternalCommand msiexec.exe -ArgumentList $arguments -ContinueExitCodes @{3010 = 'Restart Windows to complete installation.'})) { throw 'OneMark MSI installation failed.' }"
         ]
     },
@@ -26,5 +44,5 @@
             "if (!(Invoke-ExternalCommand msiexec.exe -ArgumentList $arguments -ContinueExitCodes @{1605 = 'OneMark is already uninstalled.'; 3010 = 'Restart Windows to complete uninstallation.'})) { throw 'OneMark MSI uninstallation failed.' }"
         ]
     },
-    "notes": "Requires 64-bit Microsoft OneNote desktop and .NET Framework 4.5 or later. Install globally from an elevated PowerShell. Close OneNote before installation or removal. This package runs Windows Installer and registers the add-in system-wide."
+    "notes": "Requires 64-bit Microsoft OneNote desktop and .NET Framework 4.5 or later. Installs for the current user by default; use -g from an elevated PowerShell for a machine-wide installation. Close OneNote before installation or removal. Per-user installation applies a transform to register the add-in under the current user's registry."
 }
