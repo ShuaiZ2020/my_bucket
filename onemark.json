@@ -32,7 +32,7 @@
             "    $modified.CreateTransformSummaryInfo($original, $transform, 0, 0)",
             "    foreach ($comObject in @($view, $modified, $original, $windowsInstaller)) { [void][System.Runtime.InteropServices.Marshal]::FinalReleaseComObject($comObject) }",
             "    Remove-Item -LiteralPath $workingMsi -Force",
-            "    $arguments += @('ALLUSERS=\"\"', 'FolderForm_AllUsers=ME', \"TRANSFORMS=`\"$transform`\"\")",
+            "    $arguments += @('ALLUSERS=2', 'MSIINSTALLPERUSER=1', 'FolderForm_AllUsers=ME', \"TRANSFORMS=`\"$transform`\"\")",
             "}",
             "if (!(Invoke-ExternalCommand msiexec.exe -ArgumentList $arguments -ContinueExitCodes @{3010 = 'Restart Windows to complete installation.'})) { throw 'OneMark MSI installation failed.' }"
         ]
